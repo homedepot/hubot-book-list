@@ -102,7 +102,7 @@ describe 'book list', ->
         setTimeout done, 100
 
       it 'and it should reply with an error for invalid books',  ->
-        expect(room.robot.emit.firstCall.args[1].content.title).equals("ADD ERROR")
+        expect(room.robot.emit.firstCall.args[1].content.title).to.match(/ADD ERROR - Lookup Error - (.*)$/)
 
       it 'and it should reply confirming the addition of the first book',  ->
         expect(room.robot.emit.secondCall.args[1].content.title).equals("Added: The Clean Coder")

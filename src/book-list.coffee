@@ -37,11 +37,11 @@ module.exports = (robot) ->
 
     addBook res, rawBookToAdd, null, (err) ->
 
-      return emitString(res,"ADD ERROR") if err
+      return emitString(res,"ADD ERROR - #{err}") if err
 
       formatBookInfo getLastBook(), "Added: ", (book, err) ->
 
-        return emitString(res,"ADD ERROR") if err
+        return emitString(res,"ADD ERROR - #{err}") if err
 
         robot.emit 'slack-attachment',
           channel: res.envelope.room
@@ -56,7 +56,7 @@ module.exports = (robot) ->
       index = getBookList().indexOf(randomBook)
       formatBookInfo randomBook, "Random - #{index}: ", (book, err) ->
 
-        return emitString(res,"RANDOM ERROR") if err
+        return emitString(res,"RANDOM ERROR - #{err}") if err
 
         robot.emit 'slack-attachment',
           channel: res.envelope.room
@@ -92,7 +92,7 @@ module.exports = (robot) ->
     else
       formatBookInfo getBookAtIndex(index), "Index #{index}: ", (book, err) ->
 
-        return emitString(res,"LOOKUP ERROR") if err
+        return emitString(res,"LOOKUP ERROR - #{err}") if err
 
         robot.emit 'slack-attachment',
           channel: res.envelope.room
@@ -112,11 +112,11 @@ module.exports = (robot) ->
         return emitString(res,"EDIT ERROR")
       else
         addBook res, newTitle, index, (err) ->
-          return emitString(res,"EDIT ERROR") if err
+          return emitString(res,"EDIT ERROR - #{err}") if err
 
           formatBookInfo getBookAtIndex(index), "Updated: #{index} is ", (book, err) ->
 
-            return emitString(res,"EDIT ERROR") if err
+            return emitString(res,"EDIT ERROR - #{err}") if err
 
             robot.emit 'slack-attachment',
               channel: res.envelope.room
@@ -200,12 +200,12 @@ module.exports = (robot) ->
     res.http("https://www.googleapis.com/books/v1/volumes?q='#{search_terms}'&maxResults=1")
     .get() (err, resp, body) ->
       if(err)
-        err = "\n Error - #{err}"
+        err = "Lookup Error - #{err}"
       else
         try
           data = JSON.parse body
           if not data.items
-            err = "\n Error - search failed for title: #{search_terms}"
+            err = "Lookup Error - search failed for title: #{search_terms}"
         catch err
-          err = "\n Error - #{err}"
+          err = "Lookup Error - #{err}"
       cb(data, err)

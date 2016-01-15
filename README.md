@@ -1,5 +1,6 @@
 # hubot-book-list
 
+
 Manages a list of books, using the google books api for data
 
 See [`src/book-list.coffee`](src/book-list.coffee) for full documentation.
