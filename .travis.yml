@@ -4,6 +4,10 @@ node_js:
   - "0.10"
   - "5.1.1"
 sudo: false
+deploy:
+  provider: npm
+  email: "thomas_gamble@homedepot.com"
+  api_key: $API_KEY
 cache:
   directories:
     - node_modules
