@@ -29,6 +29,11 @@ responseBody =
     '{ "items": [ { "volumeInfo": { "title": "Book 4",  "authors": [ "Author 4" ], "categories":
     [ "Computers" ], "imageLinks": { "smallThumbnail": "http://small4", "thumbnail": "http://big4"} } } ] }'
 
+  no_category:
+    '{ "items": [ { "volumeInfo": { "title": "To Sell Is Human: The Surprising Truth About Moving Others", "authors": ["Global Dogan"],
+    "imageLinks": {"smallThumbnail": "http://books","thumbnail": "http://books.g"} } } ] }'
+
+
 describe 'book list', ->
   room = null
 
@@ -47,6 +52,8 @@ describe 'book list', ->
     .reply 200, responseBody.valid_book3
     .get("/books/v1/volumes?q='pragmatic%20programmer'&maxResults=1")
     .reply 200, responseBody.valid_prag_program
+    .get("/books/v1/volumes?q='To%20Sell'&maxResults=1")
+    .reply 200, responseBody.no_category
 
   afterEach ->
     room.destroy()
@@ -95,6 +102,7 @@ describe 'book list', ->
       beforeEach (done) ->
         room.robot.emit = sinon.spy()
         room.user.say 'alice', 'hubot booklist add nonsense'
+        room.user.say 'mary', 'hubot booklist add To Sell'
         room.user.say 'mary', 'hubot booklist add clean coder'
         room.user.say 'alice', 'hubot booklist add Book 2'
         room.user.say 'alice', 'hubot booklist add Book 3'
@@ -104,14 +112,17 @@ describe 'book list', ->
       it 'and it should reply with an error for invalid books',  ->
         expect(room.robot.emit.firstCall.args[1].content.title).to.match(/ADD ERROR - Lookup Error - (.*)$/)
 
+      it 'and it should reply with an error for invalid books',  ->
+        expect(room.robot.emit.secondCall.args[1].content.title).equals("Added: To Sell Is Human: The Surprising Truth About Moving Others")
+
       it 'and it should reply confirming the addition of the first book',  ->
-        expect(room.robot.emit.secondCall.args[1].content.title).equals("Added: The Clean Coder")
+        expect(room.robot.emit.thirdCall.args[1].content.title).equals("Added: The Clean Coder")
 
       it 'and it should reply confirming the addition of the second book',  ->
-        expect(room.robot.emit.thirdCall.args[1].content.fields[0].value).equals("Author 2")
+        expect(room.robot.emit.getCall(3).args[1].content.fields[0].value).equals("Author 2")
 
       it 'and it should reply confirming the addition of the third book',  ->
-        expect(room.robot.emit.getCall(3).args[1].content.fields[1].value).equals("Computers")
+        expect(room.robot.emit.getCall(4).args[1].content.fields[1].value).equals("Computers")
 
       it 'and it should reply confirming the addition of the fourth book',  ->
         expect(room.robot.emit.lastCall.args[1].content.thumb_url).equals("http://big4")
@@ -124,30 +135,30 @@ describe 'book list', ->
           setTimeout done, 20
 
         it 'and it should reply with the full book list', ->
-          expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist - 4 books")
+          expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist - 5 books")
           expect(room.robot.emit.firstCall.args[1].content.thumb_url).equals("https://goo.gl/g5Itaz")
-          expect(room.robot.emit.firstCall.args[1].content.fields[3].title).equals("3 - Book 4")
-          expect(room.robot.emit.firstCall.args[1].content.fields[3].value).equals("Author 4, Computers")
+          expect(room.robot.emit.firstCall.args[1].content.fields[3].title).equals("3 - Book 3")
+          expect(room.robot.emit.firstCall.args[1].content.fields[3].value).equals("Author 3, Computers")
 
       describe 'then asks for a specific book by index number', ->
 
         beforeEach ->
           room.robot.emit = sinon.spy()
           room.user.say 'alice', 'hubot booklist lookup 2'
-          room.user.say 'alice', 'hubot booklist lookup 4'
+          room.user.say 'alice', 'hubot booklist lookup 5'
           room.user.say 'alice', 'hubot booklist lookup junk'
 
         it 'and it should reply including the title and index of the book requested', ->
-          expect(room.robot.emit.firstCall.args[1].content.title).equals("Index 2: Book 3")
+          expect(room.robot.emit.firstCall.args[1].content.title).equals("Index 2: Book 2")
 
         it 'and it should reply including the author of the book requested', ->
-          expect(room.robot.emit.firstCall.args[1].content.fields[0].value).equals("Author 3")
+          expect(room.robot.emit.firstCall.args[1].content.fields[0].value).equals("Author 2")
 
         it 'and it should reply including the category of the book requested', ->
           expect(room.robot.emit.firstCall.args[1].content.fields[1].value).equals("Computers")
 
         it 'and it should reply including the image url of the book requested', ->
-          expect(room.robot.emit.firstCall.args[1].content.thumb_url).equals("http://big3")
+          expect(room.robot.emit.firstCall.args[1].content.thumb_url).equals("http://big2")
 
         it 'and it should reply with an error for indexes that do not exist', ->
           expect(room.robot.emit.secondCall.args[1].content.title).equals("LOOKUP ERROR")

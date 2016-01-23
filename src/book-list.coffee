@@ -34,7 +34,6 @@ module.exports = (robot) ->
 
   robot.hear /booklist add (.*)$/i, (res) ->
     rawBookToAdd = res.match[1]
-
     addBook res, rawBookToAdd, null, (err) ->
 
       return emitString(res,"ADD ERROR - #{err}") if err
@@ -99,7 +98,6 @@ module.exports = (robot) ->
           content: book
 
   robot.hear /booklist edit (.*)$/i, (res) ->
-#TODO: look at .slice
     edit_args = res.match[1].split " "
     index = edit_args[0]
     if edit_args.length < 2 or isNaN(index)
@@ -171,8 +169,8 @@ module.exports = (robot) ->
       book = data.items[0].volumeInfo
       author = book.authors[0]
       title = book.title
-      category = book.categories[0]
-      image = book.imageLinks.thumbnail
+      category = if book.categories then book.categories[0] else "not set"
+      image = if book.imageLinks.thumbnail then book.imageLinks.thumbnail else TITLE_IMAGE
 
     catch err
       return cb(enhancedBook, err)
