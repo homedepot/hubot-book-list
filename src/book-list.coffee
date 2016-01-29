@@ -205,13 +205,18 @@ module.exports = (robot) ->
       content: payload
 
   formatBookInfo = (book, action, cb) ->
+    currentAverage = 0
+
+    if book[BOOK.RATING] and book[BOOK.REVIEWCOUNT]
+      currentAverage = book[BOOK.RATING].value
+
     payload =
       title: action + book[BOOK.TITLE].value
       thumb_url: book[BOOK.IMAGE].value
       fields: [
         { short: true, title: "Author", value: book[BOOK.AUTHOR].value }
         { short: true, title: "Category", value: book[BOOK.CATEGORY].value }
-        { short: true, title: "Average Rating", value: if book[BOOK.RATING] then book[BOOK.RATING].value else "0"}
+        { short: true, title: "Average Rating", value: if currentAverage.toString() }
       ]
 
     cb(payload, null)
