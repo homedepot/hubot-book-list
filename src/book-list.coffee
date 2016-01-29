@@ -20,6 +20,8 @@ module.exports = (robot) ->
     AUTHOR: 1
     CATEGORY: 2
     IMAGE: 3
+    RATING: 4
+    REVIEWCOUNT: 5
 
   TITLE_IMAGE = 'https://goo.gl/g5Itaz'
 
@@ -34,7 +36,10 @@ module.exports = (robot) ->
 
   robot.hear /booklist add (.*)$/i, (res) ->
     rawBookToAdd = res.match[1]
-    addBook res, rawBookToAdd, null, (err) ->
+    rating = 0
+    nbrOfReviews = 0
+
+    addBook res, rawBookToAdd, rating, nbrOfReviews, null, (err) ->
 
       return emitString(res,"ADD ERROR - #{err}") if err
 
@@ -45,6 +50,23 @@ module.exports = (robot) ->
         robot.emit 'slack-attachment',
           channel: res.envelope.room
           content: book
+
+  robot.hear /booklist review book (\d{1,5}) stars (\d{1})/i, (res) ->
+    index = res.match[1]
+    reviewRating = res.match[2]
+
+    maxIndex = getBookList().length - 1
+    if index > maxIndex
+      return emitString(res,"BOOK DOES NOT EXIST ERROR")
+    else
+      addReview index, reviewRating
+
+      formatBookInfo getBookAtIndex(index), "Reviewed: #{index} - ", (formattedBook, err) ->
+
+        return emitString(res,"EDIT ERROR - #{err}") if err
+        robot.emit 'slack-attachment',
+          channel: res.envelope.room
+          content: formattedBook
 
   robot.hear /booklist random/i, (res) ->
     booklist = getBookList()
@@ -99,6 +121,10 @@ module.exports = (robot) ->
 
   robot.hear /booklist edit (.*)$/i, (res) ->
     edit_args = res.match[1].split " "
+
+    rating = 0
+    nbrOfRatings = 0
+
     index = edit_args[0]
     if edit_args.length < 2 or isNaN(index)
       return emitString(res,"EDIT ERROR")
@@ -109,8 +135,9 @@ module.exports = (robot) ->
       if index > maxIndex
         return emitString(res,"EDIT ERROR")
       else
-        addBook res, newTitle, index, (err) ->
+        addBook res, newTitle, rating, nbrOfRatings, index, (err) ->
           return emitString(res,"EDIT ERROR - #{err}") if err
+
 
           formatBookInfo getBookAtIndex(index), "Updated: #{index} is ", (book, err) ->
 
@@ -127,11 +154,11 @@ module.exports = (robot) ->
     robot.brain.get('booklist')
 
 
-  addBook = (msg, title, index, cb) ->
+  addBook = (msg, title, rating, nbrOfReviews, index, cb) ->
     bookEnhancementQuery msg, title, (data, err) ->
       return cb err if err
 
-      formatInfo data, (enhancedBook, err) ->
+      formatInfo data, rating, nbrOfReviews, (enhancedBook, err) ->
         return cb err if err
 
         booklist = getBookList()
@@ -140,6 +167,24 @@ module.exports = (robot) ->
         else
           booklist.push enhancedBook
         cb err
+
+  addReview = (index, newRating) ->
+    book = getBookAtIndex(index)
+    newRating = parseInt(newRating, 10)
+
+    currentAverage = book[BOOK.RATING].value
+    nbrOfReviews = book[BOOK.REVIEWCOUNT].value
+
+    newTotalOfAllRatings = currentAverage * nbrOfReviews + newRating
+
+    nbrOfReviews++
+
+    newAverage = newTotalOfAllRatings / nbrOfReviews
+
+    book[BOOK.RATING].value = newAverage
+    book[BOOK.REVIEWCOUNT].value = nbrOfReviews
+
+
 
   getLastBook = ->
     booklist = getBookList()
@@ -160,11 +205,12 @@ module.exports = (robot) ->
       fields: [
         { short: true, title: "Author", value: book[BOOK.AUTHOR].value }
         { short: true, title: "Category", value: book[BOOK.CATEGORY].value }
+        { short: true, title: "Average Rating", value: book[BOOK.RATING].value }
       ]
 
     cb(payload, null)
 
-  formatInfo = (data, cb) ->
+  formatInfo = (data, avgRating, nbrOfReviews, cb) ->
     try
       book = data.items[0].volumeInfo
       author = book.authors[0]
@@ -191,6 +237,14 @@ module.exports = (robot) ->
     enhancedBook.push
       key: "Image"
       value: image
+
+    enhancedBook.push
+      key: "Average Rating"
+      value: avgRating
+
+    enhancedBook.push
+      key: "Number of Reviews"
+      value: nbrOfReviews
 
     cb(enhancedBook, err)
 

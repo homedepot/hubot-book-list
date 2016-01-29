@@ -196,7 +196,6 @@ describe 'book list', ->
             room.user.say 'alice', 'hubot booklist lookup 2'
             setTimeout done, 10
 
-
           it 'and it should reply including the title and index of the book requested', ->
             expect(room.robot.emit.firstCall.args[1].content.title).equals("Index 2: The Pragmatic Programmer")
 
@@ -209,3 +208,25 @@ describe 'book list', ->
           it 'and it should reply including the image url of the book requested', ->
             expect(room.robot.emit.firstCall.args[1].content.thumb_url).equals("http://bigPrag")
 
+
+        describe 'then adds a review', ->
+
+          beforeEach (done) ->
+            room.robot.emit = sinon.spy()
+            room.user.say 'alice', 'hubot booklist review book 2 stars 5'
+            setTimeout done, 10
+
+          it 'and it should reply confirming alices rating', ->
+            expect(room.robot.emit.firstCall.args[1].content.title).equals("Reviewed: 2 - The Pragmatic Programmer")
+            expect(room.robot.emit.firstCall.args[1].content.fields[2].value).equals(5)
+
+          describe 'then adds another review', ->
+
+            beforeEach (done) ->
+              room.robot.emit = sinon.spy()
+              room.user.say 'sam', 'hubot booklist review book 2 stars 3'
+              setTimeout done, 10
+
+            it 'and it should reply confirming sams rating', ->
+              expect(room.robot.emit.firstCall.args[1].content.title).equals("Reviewed: 2 - The Pragmatic Programmer")
+              expect(room.robot.emit.firstCall.args[1].content.fields[2].value).equals(4)

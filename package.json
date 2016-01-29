@@ -1,28 +1,21 @@
 {
   "name": "hubot-book-list",
   "description": "Manages a list of books, using the google books api for data",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "author": "gambtho <thomas_gamble@homedepot.com> and Paul Gaffney",
   "license": "Apache-2.0",
-
   "keywords": "hubot, hubot-scripts, books, google books api",
-
   "repository": {
     "type": "git",
     "url": "git://github.com/gambtho/hubot-book-list.git"
   },
-
   "bugs": {
     "url": "https://github.com/gambtho/hubot-book-list/issues"
   },
-
-  "dependencies": {
-  },
-
+  "dependencies": {},
   "peerDependencies": {
     "hubot": "2.x"
   },
-
   "devDependencies": {
     "chai": "^3.4.1",
     "coffee-errors": "^0.8.6",
@@ -40,9 +33,7 @@
     "sinon": "^1.17.2",
     "sinon-chai": "^2.7.0"
   },
-
   "main": "index.coffee",
-
   "scripts": {
     "test": "grunt test"
   }
