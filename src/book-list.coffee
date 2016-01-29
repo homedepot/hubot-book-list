@@ -7,6 +7,7 @@
 #   hubot booklist lookup <index> - retrieves book information
 #   hubot booklist - displays full booklist
 #   hubot booklist edit <index> <title> - edit book at index with new title
+#   hubot booklist review book <index> stars <rating> - rates the selected book
 #
 # Author:
 #   Thomas Gamble & Paul Gaffney
@@ -53,7 +54,10 @@ module.exports = (robot) ->
 
   robot.hear /booklist review book (\d{1,5}) stars (\d{1})/i, (res) ->
     index = res.match[1]
-    reviewRating = res.match[2]
+    reviewRating = parseInt(res.match[2], 10)
+
+    if reviewRating > 5
+      return emitString(res,"Ratings must be between 1 and 5")
 
     maxIndex = getBookList().length - 1
     if index > maxIndex
@@ -172,8 +176,12 @@ module.exports = (robot) ->
     book = getBookAtIndex(index)
     newRating = parseInt(newRating, 10)
 
-    currentAverage = book[BOOK.RATING].value
-    nbrOfReviews = book[BOOK.REVIEWCOUNT].value
+    currentAverage = 0
+    nbrOfReviews = 0
+
+    if book[BOOK.RATING] and book[BOOK.REVIEWCOUNT]
+      currentAverage = book[BOOK.RATING].value
+      nbrOfReviews = book[BOOK.REVIEWCOUNT].value
 
     newTotalOfAllRatings = currentAverage * nbrOfReviews + newRating
 
@@ -183,8 +191,6 @@ module.exports = (robot) ->
 
     book[BOOK.RATING].value = newAverage
     book[BOOK.REVIEWCOUNT].value = nbrOfReviews
-
-
 
   getLastBook = ->
     booklist = getBookList()
@@ -205,7 +211,7 @@ module.exports = (robot) ->
       fields: [
         { short: true, title: "Author", value: book[BOOK.AUTHOR].value }
         { short: true, title: "Category", value: book[BOOK.CATEGORY].value }
-        { short: true, title: "Average Rating", value: book[BOOK.RATING].value }
+        { short: true, title: "Average Rating", value: if book[BOOK.RATING] then book[BOOK.RATING].value else "0"}
       ]
 
     cb(payload, null)
