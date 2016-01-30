@@ -14,6 +14,8 @@
 #
 # Title image by Alejandro Escamilla - hosted by unsplash.com with CCO-1.0 License
 
+Github = require('github-api')
+
 module.exports = (robot) ->
 
   BOOK =
@@ -26,6 +28,11 @@ module.exports = (robot) ->
 
   TITLE_IMAGE = 'https://goo.gl/g5Itaz'
 
+  TOKEN = process.env.HUBOT_GITHUB_TOKEN
+  GITHUB_USER = process.env.HUBOT_GITHUB_USER
+  GITHUB_REPO = process.env.HUBOT_GITHUB_REPO
+  GITHUB_FILE = process.env.HUBOT_GITHUB_FILE
+
 
   robot.hear /booklist initialize/i, (res) ->
     if robot.brain.get('booklist')
@@ -35,7 +42,49 @@ module.exports = (robot) ->
     robot.brain.set('booklist', [])
     return emitString(res, "Booklist Initialized")
 
-  robot.hear /booklist add (.*)$/i, (res) ->
+  prepRepo = (res, cb) ->
+    github = new Github {token: TOKEN, auth: "oauth"}
+    email = "hubot@hubot.com"
+    user = "hubot"
+    if res.user
+      if res.user.name
+        user = res.user.name
+      if res.user.email_address
+        email = res.user.email_address
+    options = {
+      author: {
+        name: user
+        email: email
+      }
+      committer: {
+        name: user
+        email: email
+      }
+      encode: true
+    }
+    repo = github.getRepo GITHUB_USER, GITHUB_REPO
+    cb(repo, options)
+
+  robot.hear /booklist db (.*)$/i, (res) ->
+    booklist = getBookList()
+    if res.match[1] == "save"
+      if booklist and booklist.length > 0
+        prepRepo res, (repo, options) ->
+          repo.write 'master', GITHUB_FILE, JSON.stringify(booklist), "hubot", options, (err) ->
+            return emitString(res, "BACKUP ERORR -" + err) if err
+          return emitString(res, "Booklist backed up")
+      return emitString(res, "Unable to backup empty booklist")
+    if res.match[1] == "load"
+      if booklist and booklist.length > 0
+        return emitString(res, "Booklist already exists")
+      else
+        prepRepo res, (repo, options) ->
+          repo.read 'master', GITHUB_FILE, (err, data) ->
+            return emitString("RELOAD ERROR - " + err) if err
+            robot.brain.set('booklist', data)
+            return emitString(res, "Booklist re-loaded")
+
+  robot.hear /booklist add (.*)$/i, (res) ->c
     rawBookToAdd = res.match[1]
     rating = 0
     nbrOfReviews = 0
@@ -109,7 +158,7 @@ module.exports = (robot) ->
         channel: res.envelope.room
         content: payload
 
-  robot.hear /booklist lookup (\d)$/i, (res) ->
+  robot.hear /booklist lookup (\d{1,20})$/i, (res) ->
     index = res.match[1]
     maxIndex = getBookList().length - 1
     if index > maxIndex
@@ -123,33 +172,28 @@ module.exports = (robot) ->
           channel: res.envelope.room
           content: book
 
-  robot.hear /booklist edit (.*)$/i, (res) ->
-    edit_args = res.match[1].split " "
-
+  robot.hear /booklist edit (\d{1,20}) (.*)$/i, (res) ->
     rating = 0
     nbrOfRatings = 0
 
-    index = edit_args[0]
-    if edit_args.length < 2 or isNaN(index)
+    index = res.match[1]
+
+    newTitle = res.match[2]
+    maxIndex = getBookList().length - 1
+    if index > maxIndex
       return emitString(res,"EDIT ERROR")
     else
-      edit_args.shift()
-      newTitle = edit_args.join(' ')
-      maxIndex = getBookList().length - 1
-      if index > maxIndex
-        return emitString(res,"EDIT ERROR")
-      else
-        addBook res, newTitle, rating, nbrOfRatings, index, (err) ->
+      addBook res, newTitle, rating, nbrOfRatings, index, (err) ->
+        return emitString(res,"EDIT ERROR - #{err}") if err
+
+
+        formatBookInfo getBookAtIndex(index), "Updated: #{index} is ", (book, err) ->
+
           return emitString(res,"EDIT ERROR - #{err}") if err
 
-
-          formatBookInfo getBookAtIndex(index), "Updated: #{index} is ", (book, err) ->
-
-            return emitString(res,"EDIT ERROR - #{err}") if err
-
-            robot.emit 'slack-attachment',
-              channel: res.envelope.room
-              content: book
+          robot.emit 'slack-attachment',
+            channel: res.envelope.room
+            content: book
 
   getBookAtIndex = (index) ->
     getBookList()[index]
@@ -216,7 +260,7 @@ module.exports = (robot) ->
       fields: [
         { short: true, title: "Author", value: book[BOOK.AUTHOR].value }
         { short: true, title: "Category", value: book[BOOK.CATEGORY].value }
-        { short: true, title: "Average Rating", value: if currentAverage.toString() }
+        { short: true, title: "Average Rating", value: currentAverage }
       ]
 
     cb(payload, null)
@@ -227,7 +271,7 @@ module.exports = (robot) ->
       author = book.authors[0]
       title = book.title
       category = if book.categories then book.categories[0] else "not set"
-      image = if book.imageLinks.thumbnail then book.imageLinks.thumbnail else TITLE_IMAGE
+      image = if book.imageLinks then book.imageLinks.thumbnail else TITLE_IMAGE
 
     catch err
       return cb(enhancedBook, err)
