@@ -84,7 +84,7 @@ module.exports = (robot) ->
             robot.brain.set('booklist', data)
             return emitString(res, "Booklist re-loaded")
 
-  robot.hear /booklist add (.*)$/i, (res) ->c
+  robot.hear /booklist add (.*)$/i, (res) ->
     rawBookToAdd = res.match[1]
     rating = 0
     nbrOfReviews = 0
