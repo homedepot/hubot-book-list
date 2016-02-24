@@ -43,7 +43,9 @@ module.exports = (robot) ->
     return emitString(res, "Booklist Initialized")
 
   prepRepo = (res, cb) ->
-    github = new Github {token: TOKEN, auth: "oauth"}
+    #github = new Github {token: TOKEN, auth: "oauth"}
+    #if process.env.HUBOT_GITHUB_URL
+    github = new Github {apiUrl: "#{process.env.HUBOT_GITHUB_URL}/api/v3", token: TOKEN, auth: "oauth"}
     email = "hubot@hubot.com"
     user = "hubot"
     if res.user
@@ -71,18 +73,25 @@ module.exports = (robot) ->
       if booklist and booklist.length > 0
         prepRepo res, (repo, options) ->
           repo.write 'master', GITHUB_FILE, JSON.stringify(booklist), "hubot", options, (err) ->
-            return emitString(res, "BACKUP ERORR -" + err) if err
-          return emitString(res, "Booklist backed up")
-      return emitString(res, "Unable to backup empty booklist")
+            if err
+              console.log err
+              emitString(res, "BACKUP ERROR -" + err)
+            else
+              console.log "no error"
+              emitString(res, "Booklist backed up")
+      else
+        return emitString(res, "Unable to backup empty booklist")
     if res.match[1] == "load"
       if booklist and booklist.length > 0
         return emitString(res, "Booklist already exists")
       else
         prepRepo res, (repo, options) ->
           repo.read 'master', GITHUB_FILE, (err, data) ->
-            return emitString("RELOAD ERROR - " + err) if err
-            robot.brain.set('booklist', data)
-            return emitString(res, "Booklist re-loaded")
+            if err
+              return emitString("RELOAD ERROR - " + err) if err
+            else
+              robot.brain.set('booklist', data)
+              return emitString(res, "Booklist re-loaded")
 
   robot.hear /booklist add (.*)$/i, (res) ->
     rawBookToAdd = res.match[1]

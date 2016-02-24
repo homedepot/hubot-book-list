@@ -10,8 +10,9 @@ sinon = require 'sinon'
 
 # you must set a valid github token, or xit the tests related to load/save
 
-#process.env.HUBOT_GITHUB_TOKEN =
-process.env.HUBOT_GITHUB_USER = 'gambtho'
+process.env.HUBOT_GITHUB_TOKEN = 'a6aea6519fd5ac775f6ce6a3d8315034c41effdb'
+process.env.HUBOT_GITHUB_URL = 'https://github.homedepot.com'
+process.env.HUBOT_GITHUB_USER = 'tg23qo'
 process.env.HUBOT_GITHUB_REPO = 'book-backup'
 process.env.HUBOT_GITHUB_FILE = 'test_booklist.json'
 
@@ -154,10 +155,12 @@ describe 'book list', ->
         beforeEach (done) ->
           room.robot.emit = sinon.spy()
           room.user.say 'alice', 'hubot booklist db save'
-          setTimeout done, 20
+          setTimeout done, 100
 
-        it 'and it should reply confirming the save', ->
-          expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist backed up")
+          describe 'and waits a bit', ->
+
+            it 'and it should reply confirming the save', ->
+              expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist backed up")
 
       describe 'then asks to see the booklist', ->
 
