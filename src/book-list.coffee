@@ -8,6 +8,8 @@
 #   hubot booklist - displays full booklist
 #   hubot booklist edit <index> <title> - edit book at index with new title
 #   hubot booklist review book <index> stars <rating> - rates the selected book
+#   hubot booklist add copy <index> <location> - add copy of book with owner and location details
+#   hubot booklist copies - retrieves booklist copies
 #
 # Author:
 #   Thomas Gamble & Paul Gaffney
@@ -25,6 +27,7 @@ module.exports = (robot) ->
     IMAGE: 3
     RATING: 4
     REVIEWCOUNT: 5
+    COPIES: 6
 
   TITLE_IMAGE = 'https://goo.gl/g5Itaz'
 
@@ -93,7 +96,7 @@ module.exports = (robot) ->
               robot.brain.set('booklist', data)
               return emitString(res, "Booklist re-loaded")
 
-  robot.hear /booklist add (.*)$/i, (res) ->
+  robot.hear /booklist add (?:(?!copy))(.*)$/i, (res) ->
     rawBookToAdd = res.match[1]
     rating = 0
     nbrOfReviews = 0
@@ -204,6 +207,48 @@ module.exports = (robot) ->
             channel: res.envelope.room
             content: book
 
+  robot.hear /booklist add copy (\d{1,20}) (.*)$/i, (res) ->
+    index = res.match[1]
+    ownerId = getUserId(res)
+    location = res.match[2]
+    addCopy(index, ownerId, location)
+    formatBookInfo getBookAtIndex(index), "Index #{index}: ", (book, err) ->
+
+      return emitString(res,"LOOKUP ERROR - #{err}") if err
+
+      robot.emit 'slack-attachment',
+        channel: res.envelope.room
+        content: book
+
+  robot.hear /booklist copies$/i, (res) ->
+    booklist = getBookList()
+    return emitString(res, "Null booklist") if booklist is null
+    if booklist.length == 0
+      return emitString(res,"no-books")
+    else
+      fields = []
+      
+      booklist.map (book) ->
+        copyList = ""
+        copies = []
+
+        if book[BOOK.COPIES]
+          copies = book[BOOK.COPIES].value
+          copies.map (copy) ->
+            copyList += "\t #{copies.indexOf(copy)} - Owner: <@#{copy.ownerId}>, Location: #{copy.location}\n"
+        fields.push
+          title: "#{booklist.indexOf(book)} - #{book[BOOK.TITLE].value}"
+          value: "Copies(#{copies.length})\n #{copyList}"
+
+      payload =
+        title: "Booklist - #{getBookList().length} books"
+        thumb_url: TITLE_IMAGE
+        fields: fields
+
+      robot.emit 'slack-attachment',
+        channel: res.envelope.room
+        content: payload
+  
   getBookAtIndex = (index) ->
     getBookList()[index]
 
@@ -224,6 +269,13 @@ module.exports = (robot) ->
         else
           booklist.push enhancedBook
         cb err
+
+  addCopy = (index, ownerId, location) ->
+    book = getBookAtIndex(index)
+    copies = book[BOOK.COPIES].value
+    copies.push
+      ownerId: ownerId
+      location: location
 
   addReview = (index, newRating) ->
     book = getBookAtIndex(index)
@@ -250,6 +302,9 @@ module.exports = (robot) ->
     last = booklist.length - 1
     getBookAtIndex(last)
 
+  getUserId = (res) ->
+      "#{res.message.user.id}"
+      
   emitString = (res, string="Error") ->
     payload =
       title: string
@@ -270,6 +325,7 @@ module.exports = (robot) ->
         { short: true, title: "Author", value: book[BOOK.AUTHOR].value }
         { short: true, title: "Category", value: book[BOOK.CATEGORY].value }
         { short: true, title: "Average Rating", value: currentAverage }
+        { short: true, title: "Copies", value: book[BOOK.COPIES].value.length }
       ]
 
     cb(payload, null)
@@ -281,6 +337,7 @@ module.exports = (robot) ->
       title = book.title
       category = if book.categories then book.categories[0] else "not set"
       image = if book.imageLinks then book.imageLinks.thumbnail else TITLE_IMAGE
+      copies = []
 
     catch err
       return cb(enhancedBook, err)
@@ -309,6 +366,10 @@ module.exports = (robot) ->
     enhancedBook.push
       key: "Number of Reviews"
       value: nbrOfReviews
+
+    enhancedBook.push
+      key: "Copies"
+      value: copies
 
     cb(enhancedBook, err)
 
