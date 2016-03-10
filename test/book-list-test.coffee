@@ -20,6 +20,7 @@ FIELD =
   AUTHOR: 0
   CATEGORY: 1
   RATING: 2
+  COPIES: 3
 
 responseBody =
   valid_coder:
@@ -175,6 +176,33 @@ describe 'book list', ->
           expect(room.robot.emit.firstCall.args[1].content.fields[3].title).equals("3 - Book 3")
           expect(room.robot.emit.firstCall.args[1].content.fields[3].value).equals("Author 3, Computers")
 
+      describe 'then asks to add a book copy', ->
+      
+        beforeEach (done) ->
+          room.robot.emit = sinon.spy()
+          room.user.say 'alice', 'hubot booklist add copy 2 ssc'
+          setTimeout done, 20
+        
+        it 'and it should reply including the title and index of the book requested', ->
+          expect(room.robot.emit.firstCall.args[1].content.title).equals("Index 2: Book 2")
+
+        it 'and it should reply including the number of copies of the book requested', ->
+          expect(room.robot.emit.firstCall.args[1].content.fields[FIELD.COPIES].value).equals(1)
+
+        describe 'then asks to see the list of book copies', ->
+
+          beforeEach (done) ->
+            room.robot.emit = sinon.spy()
+            room.user.say 'alice', 'hubot booklist copies'
+            setTimeout done, 20
+
+          it 'and it should reply with the full list of book copies', ->
+            expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist - 5 books")
+            expect(room.robot.emit.firstCall.args[1].content.fields[2].title).equals("2 - Book 2")
+
+          it 'and it should reply including copy index, owner and location', ->
+            expect(room.robot.emit.firstCall.args[1].content.fields[2].value).equals("Copies(1)\n \t 0 - Owner: <@alice>, Location: ssc\n")
+            
       describe 'then asks for a specific book by index number', ->
 
         beforeEach ->
