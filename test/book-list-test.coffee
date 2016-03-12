@@ -8,13 +8,9 @@ expect = chai.expect
 nock = require 'nock'
 sinon = require 'sinon'
 
-# you must set a valid github token, or xit the tests related to load/save
+# you must set a valid bookcase url, or xit the tests related to load/save
 
-process.env.HUBOT_GITHUB_TOKEN = 'a6aea6519fd5ac775f6ce6a3d8315034c41effdb'
-process.env.HUBOT_GITHUB_URL = 'https://github.homedepot.com'
-process.env.HUBOT_GITHUB_USER = 'tg23qo'
-process.env.HUBOT_GITHUB_REPO = 'book-backup'
-process.env.HUBOT_GITHUB_FILE = 'test_booklist.json'
+process.env.HUBOT_BOOKCASE_URL = 'http://bookcase.cfapps.io'
 
 FIELD =
   AUTHOR: 0
@@ -87,10 +83,10 @@ describe 'book list', ->
     beforeEach (done) ->
       room.robot.emit = sinon.spy()
       room.user.say 'mary', 'hubot booklist db save'
-      setTimeout done, 100
+      setTimeout done, 1000
 
     it 'and it should reply with a response indicating that the booklist was not saved', ->
-      expect(room.robot.emit.firstCall.args[1].content.title).equals("Unable to backup empty booklist")
+      expect(room.robot.emit.firstCall.args[1].content.title).equals("Null booklist")
 
   describe 'user asks hubot to initialize booklist', ->
 
@@ -156,12 +152,10 @@ describe 'book list', ->
         beforeEach (done) ->
           room.robot.emit = sinon.spy()
           room.user.say 'alice', 'hubot booklist db save'
-          setTimeout done, 100
+          setTimeout done, 1000
 
-          describe 'and waits a bit', ->
-
-            it 'and it should reply confirming the save', ->
-              expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist backed up")
+        it 'and it should reply confirming the save', ->
+          expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist backed up")
 
       describe 'then asks to see the booklist', ->
 
@@ -177,12 +171,12 @@ describe 'book list', ->
           expect(room.robot.emit.firstCall.args[1].content.fields[3].value).equals("Author 3, Computers")
 
       describe 'then asks to add a book copy', ->
-      
+
         beforeEach (done) ->
           room.robot.emit = sinon.spy()
           room.user.say 'alice', 'hubot booklist add copy 2 ssc'
           setTimeout done, 20
-        
+
         it 'and it should reply including the title and index of the book requested', ->
           expect(room.robot.emit.firstCall.args[1].content.title).equals("Index 2: Book 2")
 
@@ -202,7 +196,7 @@ describe 'book list', ->
 
           it 'and it should reply including copy index, owner and location', ->
             expect(room.robot.emit.firstCall.args[1].content.fields[2].value).equals("Copies(1)\n \t 0 - Owner: <@alice>, Location: ssc\n")
-            
+
       describe 'then asks for a specific book by index number', ->
 
         beforeEach ->
@@ -298,7 +292,7 @@ describe 'book list', ->
               expect(room.robot.emit.firstCall.args[1].content.title).equals("Reviewed: 2 - The Pragmatic Programmer")
               expect(room.robot.emit.firstCall.args[1].content.fields[FIELD.RATING].value).equals(4)
 
-  describe 'user asks hubot to load a booklist when there are books saved', ->
+  describe 'user asks hubot to load a booklist when there are no books saved', ->
 
     beforeEach (done) ->
       room.robot.emit = sinon.spy()
@@ -308,12 +302,14 @@ describe 'book list', ->
     it 'and it should reply with a response indicating that the booklist was loaded', ->
       expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist re-loaded")
 
-    describe 'user asks hubot to list all books after a load', ->
+
+    describe 'user asks hubot to load a booklist when there are books saved', ->
 
       beforeEach (done) ->
         room.robot.emit = sinon.spy()
         room.user.say 'joe', 'hubot booklist'
-        setTimeout done, 100
+        setTimeout done, 1000
 
       it 'and it should reply with a list of books', ->
+        console.log room.robot.emit.firstCall.args[1].content.title
         expect(room.robot.emit.firstCall.args[1].content.title).to.match(/Booklist - (\d{1,100}) books$/)

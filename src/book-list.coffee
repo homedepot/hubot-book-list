@@ -16,8 +16,6 @@
 #
 # Title image by Alejandro Escamilla - hosted by unsplash.com with CCO-1.0 License
 
-Github = require('github-api')
-
 module.exports = (robot) ->
 
   BOOK =
@@ -30,71 +28,41 @@ module.exports = (robot) ->
     COPIES: 6
 
   TITLE_IMAGE = 'https://goo.gl/g5Itaz'
-
-  TOKEN = process.env.HUBOT_GITHUB_TOKEN
-  GITHUB_USER = process.env.HUBOT_GITHUB_USER
-  GITHUB_REPO = process.env.HUBOT_GITHUB_REPO
-  GITHUB_FILE = process.env.HUBOT_GITHUB_FILE
-
+  BOOKCASE_URL = process.env.HUBOT_BOOKCASE_URL;
 
   robot.hear /booklist initialize/i, (res) ->
     if robot.brain.get('booklist')
-      if robot.brain.get('booklist').length >= 0
-        return emitString(res, "Booklist already exists")
-
-    robot.brain.set('booklist', [])
-    return emitString(res, "Booklist Initialized")
-
-  prepRepo = (res, cb) ->
-    #github = new Github {token: TOKEN, auth: "oauth"}
-    #if process.env.HUBOT_GITHUB_URL
-    github = new Github {apiUrl: "#{process.env.HUBOT_GITHUB_URL}/api/v3", token: TOKEN, auth: "oauth"}
-    email = "hubot@hubot.com"
-    user = "hubot"
-    if res.user
-      if res.user.name
-        user = res.user.name
-      if res.user.email_address
-        email = res.user.email_address
-    options = {
-      author: {
-        name: user
-        email: email
-      }
-      committer: {
-        name: user
-        email: email
-      }
-      encode: true
-    }
-    repo = github.getRepo GITHUB_USER, GITHUB_REPO
-    cb(repo, options)
+        emitString(res, "Booklist already exists")
+    else
+      robot.brain.set('booklist', [])
+      emitString(res, "Booklist Initialized")
 
   robot.hear /booklist db (.*)$/i, (res) ->
     booklist = getBookList()
     if res.match[1] == "save"
-      if booklist and booklist.length > 0
-        prepRepo res, (repo, options) ->
-          repo.write 'master', GITHUB_FILE, JSON.stringify(booklist), "hubot", options, (err) ->
-            if err
-              console.log err
-              emitString(res, "BACKUP ERROR -" + err)
-            else
-              console.log "no error"
-              emitString(res, "Booklist backed up")
+      return emitString(res, "Null booklist") if booklist is null
+      if booklist.length == 0
+        emitString(res,"no-books")
       else
-        return emitString(res, "Unable to backup empty booklist")
-    if res.match[1] == "load"
+        robot.http(BOOKCASE_URL + '/api/books')
+        .header("Content-Type", "application/json")
+        .header("Accept", "*/*")
+        .post(JSON.stringify(booklist)) (err, resp, body) ->
+          if err
+            emitString(res, "BACKUP ERROR -" + err)
+          else
+            emitString(res, "Booklist backed up")
+    else if res.match[1] == "load"
       if booklist and booklist.length > 0
         return emitString(res, "Booklist already exists")
       else
-        prepRepo res, (repo, options) ->
-          repo.read 'master', GITHUB_FILE, (err, data) ->
-            if err
-              return emitString("RELOAD ERROR - " + err) if err
-            else
-              robot.brain.set('booklist', data)
-              return emitString(res, "Booklist re-loaded")
+        robot.http(BOOKCASE_URL + '/api/books/newest')
+        .get() (err, resp, body) ->
+          if err
+            emitString(res, "RELOAD ERROR - " + err)
+          else
+            robot.brain.set 'booklist', JSON.parse(body)
+            emitString(res, "Booklist re-loaded")
 
   robot.hear /booklist add (?:(?!copy))(.*)$/i, (res) ->
     rawBookToAdd = res.match[1]
@@ -227,7 +195,7 @@ module.exports = (robot) ->
       return emitString(res,"no-books")
     else
       fields = []
-      
+
       booklist.map (book) ->
         copyList = ""
         copies = []
@@ -248,7 +216,7 @@ module.exports = (robot) ->
       robot.emit 'slack-attachment',
         channel: res.envelope.room
         content: payload
-  
+
   getBookAtIndex = (index) ->
     getBookList()[index]
 
@@ -304,7 +272,7 @@ module.exports = (robot) ->
 
   getUserId = (res) ->
       "#{res.message.user.id}"
-      
+
   emitString = (res, string="Error") ->
     payload =
       title: string
