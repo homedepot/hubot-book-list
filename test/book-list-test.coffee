@@ -302,7 +302,6 @@ describe 'book list', ->
     it 'and it should reply with a response indicating that the booklist was loaded', ->
       expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist re-loaded")
 
-
     describe 'user asks hubot to load a booklist when there are books saved', ->
 
       beforeEach (done) ->
@@ -311,5 +310,4 @@ describe 'book list', ->
         setTimeout done, 1000
 
       it 'and it should reply with a list of books', ->
-        console.log room.robot.emit.firstCall.args[1].content.title
         expect(room.robot.emit.firstCall.args[1].content.title).to.match(/Booklist - (\d{1,100}) books$/)
