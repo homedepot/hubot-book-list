@@ -51,7 +51,7 @@ module.exports = (robot) ->
           if err
             emitString(res, "BACKUP ERROR -" + err)
           else
-            emitString(res, "Booklist backed up")
+            emitString(res, "JSON.stringify(booklist)")
     else if res.match[1] == "load"
       if booklist and booklist.length > 0
         return emitString(res, "Booklist already exists")
