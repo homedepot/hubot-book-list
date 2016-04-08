@@ -155,7 +155,7 @@ describe 'book list', ->
           setTimeout done, 1000
 
         it 'and it should reply confirming the save', ->
-          expect(room.robot.emit.firstCall.args[1].content.title).equals("Booklist backed up")
+          expect(room.robot.emit.firstCall.args[1].content.title).matches(/Backed up(.*)$/)
 
       describe 'then asks to see the booklist', ->
 
