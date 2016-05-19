@@ -50,6 +50,7 @@ module.exports = (robot) ->
         .post(JSON.stringify(booklist)) (err, resp, body) ->
           if err
             emitString(res, "BACKUP ERROR -" + err)
+            emitString(res, BOOKCASE_URL)
           else
             emitString(res, "Backed up - " + body)
     else if res.match[1] == "load"
