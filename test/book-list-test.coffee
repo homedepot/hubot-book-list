@@ -10,7 +10,7 @@ sinon = require 'sinon'
 
 # you must set a valid bookcase url, or xit the tests related to load/save
 
-process.env.HUBOT_BOOKCASE_URL = 'http://bookcase.cfapps.io'
+process.env.HUBOT_BOOKCASE_URL = 'http://book-club.cfapps.io'
 
 FIELD =
   AUTHOR: 0
