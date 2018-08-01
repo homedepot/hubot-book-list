@@ -5,7 +5,7 @@ sudo: false
 deploy:
   provider: npm
   email: "thomas_gamble@homedepot.com"
-  api_key: $API_KEY
+  api_key: $API_TOKEN
 cache:
   directories:
     - node_modules
